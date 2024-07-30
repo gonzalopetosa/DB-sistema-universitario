@@ -1,0 +1,2349 @@
+= Bases de Datos I: Trabajo Práctico
+Herrera José <jooherrera4@gmail.com>; Lambrecht_Coronel Alexia <alexia.lambrecht92@gmail.com>;  Petosa Gonzalo <gonzalopetosa1234@gmail.com>; 
+Sotelo Evelyn <evefdee@gmail.com>; 
+v1, {docdate}. Docentes Hernán Rondelli y Daniel Bertaccini (COM-02) 
+:title-page:
+:numbered:
+:source-highlighter: coderay
+:tabsize: 4
+
+== Introducción
+
+En el presente informe, se detalla el desarrollo e implementación de un sistema de gestión académica basado en un modelo de datos relacional, 
+diseñado específicamente para la carrera de Tecnicatura Universitaria en Informática de la Universidad Nacional de General Sarmiento (UNGS). 
+Este trabajo se estructura en varias partes, cada una abordando aspectos críticos para la administración eficiente de la inscripción de alumnos 
+a materias y el registro de sus calificaciones.
+
+Primera Parte: Funcionalidades del Sistema
+El sistema debe ser capaz de administrar de manera integral la apertura y cierre de los períodos de inscripción, gestionar las altas y 
+bajas de inscripciones a materias, aplicar cupos, registrar notas y cerrar cursadas. Además, debe mantener actualizada toda la información 
+referente a los alumnos, las materias y sus respectivas comisiones, así como las correlatividades entre ellas. Un aspecto crucial del sistema 
+es garantizar la consistencia de la información en todo momento. Por ejemplo, no debe haber más alumnos aceptados en una comisión que los 
+permitidos por su cupo, y los procesos críticos como la aplicación de cupos no deben quedar incompletos. Asimismo, los alumnos deben ser 
+informados vía email cuando ocurran eventos importantes relacionados con su situación académica.
+
+Segunda Parte: Creación de la Base de Datos
+La base de datos debe ser creada siguiendo un esquema de nomenclatura específico. Las tablas deben ser creadas con nombres, atributos y tipos 
+de datos exactamente como se especifica en la consigna. Además, se deben definir las claves primarias (PK) y foráneas (FK) por separado de 
+la creación de las tablas, y debe ser posible eliminarlas si es necesario.
+
+Tercera Parte: Instancia de los Datos
+Se requiere la carga de datos iniciales en la base de datos y se debe registrar toda la información histórica de los períodos académicos. 
+
+Cuarta Parte: Stored Procedures y Triggers
+El trabajo incluye la implementación de diversos stored procedures y triggers para automatizar y gestionar las operaciones críticas del sistema. 
+
+Quinta Parte: JSON y Bases de datos NoSQL
+Finalmente, para comparar el modelo relacional con un modelo NoSQL, se requiere almacenar los datos de alumnos, materias, comisiones e 
+inscripciones a cursada en una base de datos NoSQL basada en JSON, utilizando BoltDB. Este proceso debe ser ejecutado desde una aplicación CLI escrita en Go.
+
+Este informe dará una visión general de los pasos seguidos, de los inconvenientes encontrados en el desarrollo del trabajo, y de las soluciones halladas para
+dichos inconvenientes, con el objetivo de demostrar la capacidad del sistema para manejar eficazmente la información académica y facilitar la 
+administración de la carrera de Tecnicatura Universitaria en Informática en la UNGS.
+
+== Descripción
+
+Para la realización de esta tarea se utilizó la máquina virtual Oracle VM VirtualBox para trabajar con Linux, y desde allí se trabajó con la terminal del 
+sistema operativo para la mayor parte del TP. 
+Las tareas se dividieron entre los integrantes del grupo y se compartió un repositorio en Gitlab donde cada integrante debía compartir lo que iba haciendo.
+
+GO:
+
+El código proporciona un menú interactivo que permite al usuario realizar cualquiera de las operaciones que se encuentran allí detalladas, en la base de datos.
+Las operaciones que permite realizar son las siguientes:
+1)Crear una base de datos.
+
+2)Crear tablas.
+
+3)Crear constraints.
+
+4)Crear stored procedures.
+
+5)Crear triggers.
+
+6)Eliminar constraints.
+
+7)Cargar tablas.
+
+8)Más opciones.
+
+9)Ejecutar test
+
+0)Salir.
+
+También cuenta con un submenú en la opción 8, que permite lo siguiente:
+
+1)Apertura de inscripción.
+
+2)Inscripción a materia.
+
+3)Baja inscripción.
+
+4)Cierre de inscripción.
+
+5)Aplicación de cupos.
+
+6)Ingreso de nota de cursada.
+
+7)Cierre de cursada.
+
+0)Volver al menú principal.
+
+
+Funciones principales:
+
+- Interfaz para que el usuario pueda realizar operaciones en el sistema.
+
+- Funciones para crear y manipular la base de datos.
+
+- Funciones para cargar datos desde archivos json.
+
+- Funciones para ejecutar test.
+
+BoltDB.
+
+ Se utiliza boltDB, una base de datos no relacional donde encontramos simplicidad y eficiencia.
+ Desde mainBoltDB.go se brinda un menú interactivo que proporciona distintas opciones para elegir cuál desea ejecutar. 
+
+ Para la ejecución se utilizan los siguientes archivos:
+
+ -boltDBcrearAlumne.go
+
+ -boltDBcrearComision.go
+
+ -boltDBcrearHistoriaAcad.go
+
+ -boltDBcrearMateria.go
+
+ -boltDBcrearPeriodo.go
+
+ Los datos son proporcionados por los archivos json:
+
+-alumnes.json
+
+-comisiones.json
+
+-historia académica.json
+
+-materias.json
+
+-periodos.json
+
+
+=== Principales inconvenientes
+
+A continuación se listan los principales inconvenientes encontrados durante la realización del trabajo.
+
+1.- Cómo hacer un menu en Go?
+
+2.- Cómo ejecutar un script SQL en Go?
+
+3.- Cómo obtener el año de una fecha?
+
+4.- Cómo poner un estado dependiendo del número de la nota del alumne?
+
+5.- Es necesario usar transacciones dentro de las funciones?
+
+6.- Cómo eliminar un trigger que ya existe?
+
+7.- Cómo mejorar el código cuando se tiene un texto con variables en el medio?
+
+=== Soluciones
+
+1.- Para hacer un menú en Go usamos 'fmt.Scanln()' : https://pkg.go.dev/fmt#Scanln
+
+2.- Para ejecutar un script SQL en Go utilizamos de la librería 'os' el método 'ReadFile(filePath)'. Luego este retorna un array de byte ([]byte). : https://pkg.go.dev/os#ReadFile
+
+Finalmente se lo pasamos a la conexión de la base de datos, a su método Exec(). https://pkg.go.dev/database/sql#DB.Exec
+
+3.- Para obtener el año de una fecha utilizamos la funcion 'extract'.
+https://www.postgresql.org/docs/current/functions-datetime.html#FUNCTIONS-DATETIME-EXTRACT
+
+4.- Para poner un estado dependiendo del número de la nota del alumne, usamos la expresión 'case'.
+https://www.postgresql.org/docs/current/functions-conditional.html#FUNCTIONS-CASE
+
+5.- Es necesario usar transacciones dentro de las funciones?. Esta pregunta surgio al ver que en nuestras stored procedures no haciamos uso explícito de las palabras claves transaction, commit o rollback. Buscando en la documentación lo que entendimos es que las funciones son transaccionales. 
+https://www.postgresql.org/docs/current/plpgsql-control-structures.html#PLPGSQL-ERROR-TRAPPING
+https://www.postgresql.org/message-id/3c7410400804020901p45a8efeycffed550c5479e1a@mail.gmail.com
+
+También probamos en el código lanzando un error entre un insert y un update. Al fallar la función, los datos que se ingresarón en el insert, no estaban. Con eso concluimos que todo el código dentro de una función se ejecuta en una transacción.
+
+6.- Para eliminar un trigger que ya existe usados 'DROP TRIGGER'.
+https://www.postgresql.org/docs/current/sql-droptrigger.html
+
+7.- Para mejorar el código utilizamos la función 'format'.
+https://www.postgresql.org/docs/current/functions-string.html#FUNCTIONS-STRING-FORMAT
+
+
+== Implementación
+
+# Crear DB
+```sql
+create database herrera_lambrecht_petosa_sotelo_db1;
+```
+
+# Eliminar DB
+```sql
+drop database if exists herrera_lambrecht_petosa_sotelo_db1;
+```
+
+# Crear tablas
+```sql
+create table if not exists alumne(
+	id_alumne int, 
+	nombre text, 
+	apellido text, 
+	dni int, 
+	fecha_nacimiento date, 
+	telefono char(12), 
+	email text
+);
+
+create table if not exists materia(
+	id_materia int, 
+	nombre text
+);
+
+create table if not exists correlatividad(
+	id_materia int,
+	id_mat_correlativa int
+);
+
+
+create table if not exists historia_academica(
+    id_alumne int,
+    semestre text,
+    id_materia int,
+    id_comision int,
+    estado char(15),
+    nota_regular int,
+    nota_final int
+);
+
+create table if not exists error(
+    id_error serial,
+    operacion char(15),
+    semestre text,
+    id_alumne int,
+    id_materia int,
+    id_comision int,
+    f_error timestamp,
+    motivo varchar(80)
+);
+
+create table if not exists envio_email(
+    id_email serial,
+    f_generacion timestamp,
+    email_alumne text,
+    asunto text,
+    cuerpo text,
+    f_envio text,
+    estado char(10)    
+);
+
+create table if not exists entrada_trx (
+    id_orden int,
+    operacion char(15),
+    año int,
+    nro_semestre int,
+    id_alumne int,
+    id_materia int,
+    id_comision int,
+    nota int
+);
+
+
+create table if not exists comision(
+	id_materia int,
+	id_comision int,
+	cupo int
+);
+
+create table if not exists cursada(
+	id_materia int,
+	id_alumne int,
+	id_comision int,
+	f_inscripcion timestamp,
+	nota int,
+	estado char(12)
+);
+
+create table if not exists periodo(
+	semestre text,
+	estado char(15)
+);
+```
+
+# Cargar tablas
+```sql
+insert into alumne (id_alumne, nombre, apellido, dni, fecha_nacimiento, telefono, email) values
+(1, 'Ken', 'Thompson', 5153057, '1995-05-05', '15-2889-7948', 'ken@thompson.org'),
+(2, 'Dennis', 'Ritchie', 25610126, '1955-04-11', '15-7811-5045', 'dennis@ritchie.org'),
+(3, 'Donald', 'Knuth', 9168297, '1984-04-05', '15-2780-6005', 'don@knuth.org'),
+(4, 'Rob', 'Pike', 4915593, '1946-08-16', '15-1114-9719', 'rob@pike.org'),
+(5, 'Douglas', 'McIlroy', 33187055, '1939-06-09', '15-9625-0245', 'douglas@mcilroy.org'),
+(6, 'Brian', 'Kernighan', 13897948, '1992-11-22', '15-6410-6066', 'brian@kernighan.org'),
+(7, 'Bill', 'Joy', 34115045, '1954-02-04', '15-4215-8655', 'bill@joy.org'),
+(8, 'Marshall Kirk', 'McKusick', 9806005, '1995-12-27', '15-5197-4379', 'marshall_kirk@mckusick.org'),
+(9, 'Theo', 'de Raadt', 5149719, '1950-02-07', '15-6470-9444', 'theo@deraadt.org'),
+(10, 'Cristina', 'Kirchner', 6250245, '1990-08-17', '15-5291-0113', 'cfk@fpv.gov.ar'),
+(11, 'Diego', 'Maradona', 19158655, '1985-02-27', '15-3361-4854', 'diego@dios.com.ar'),
+(12, 'Martín', 'Palermo', 5974379, '1918-06-09', '15-9877-3169', 'martin@palermo.com.ar'),
+(13, 'Guillermo', 'Barros Schelotto', 3910113, '1982-05-03', '15-5020-5695', 'guille@melli.com.ar'),
+(14, 'Susú', 'Pecoraro', 7547862, '1935-04-03', '15-6695-9505', 'susu@pecoraro.com.ar'),
+(15, 'Norma', 'Aleandro', 26614854, '1992-03-18', '15-9155-4115', 'norma@aleandro.com.ar'),
+(16, 'Soledad', 'Silveyra', 7773169, '1957-07-28', '15-9184-4522', 'sole@silveyra.com.ar'),
+(17, 'Libertad', 'Lamarque', 32205695, '1971-03-07', '15-6363-9690', 'libertad@lamarque.com.ar'),
+(18, 'Ana María', 'Picchio', 19020903, '1946-08-06', '15-4819-2117', 'ana.maria@picchio.com.ar'),
+(19, 'Niní', 'Marshall', 10535508, '1951-09-07', '15-9799-6045', 'nini@marshall.com'),
+(20, 'Claudia', 'Lapacó', 30934609, '1961-08-03', '15-2005-4879', 'claudia@lapaco.com.ar');
+
+insert into materia (id_materia, nombre) values
+(1, 'Taller Inicial Común: Taller de Lectura y Escritura'),
+(2, 'Taller Inicial Orientado: Ciencias Exactas'),
+(3, 'Taller Inicial Obligatorio del Área de Matemática'),
+(4, 'Introducción a la Programación'),
+(5, 'Taller de Lectura y Escritura en las Disciplinas'),
+(6, 'Introducción a la Matemática'),
+(7, 'Programación I'),
+(8, 'Organización del Computador'),
+(9, 'Inglés Lectocomprensión I'),
+(10, 'Programación II'),
+(11, 'Sistemas Operativos y Redes'),
+(12, 'Lógica y Teoría de Números'),
+(13, 'Programación III'),
+(14, 'Problemas Socioeconómicos Contemporáneos'),
+(15, 'Inglés Lectocomprensión II'),
+(16, 'Gestión y Administración de Bases de Datos'),
+(17, 'Matemática Discreta'),
+(18, 'Inglés Lectocomprensión III'),
+(19, 'Ingeniería de Software'),
+(20, 'Laboratorio de Construcción de Software'),
+(21, 'Especificación de Software');
+
+insert into correlatividad (id_materia, id_mat_correlativa) values
+(4, 2),
+(4, 3),
+(5, 1),
+(6, 2),
+(6, 3),
+(7, 1),
+(7, 4),
+(8, 1),
+(8, 4),
+(9, 1),
+(9, 2),
+(9, 3),
+(10, 6),
+(10, 7),
+(11, 7),
+(11, 8),
+(12, 6),
+(13, 10),
+(14, 1),
+(15, 5),
+(15, 9),
+(16, 8),
+(16, 10),
+(16, 12),
+(17, 12),
+(18, 15),
+(19, 13),
+(20, 5),
+(20, 14),
+(20, 16),
+(20, 19),
+(20, 21),
+(21, 12),
+(21, 13);
+
+insert into comision (id_materia, id_comision,cupo) values
+	(1,1,5),
+	(2,1,5),
+	(3,1,15),
+	(4,1,3),
+	(4,2,4),
+	(4,3,5),
+	(5,1,5),
+	(6,1,8),
+	(7,1,3),
+	(7,2,5),
+	(8,1,10),
+	(9,1,7),
+	(10,1,9),
+	(11,1,5),
+	(12,1,15),
+	(13,1,13),
+	(14,1,12),
+	(15,1,8),
+	(16,1,5),
+	(17,1,4),
+	(18,1,8),
+	(19,1,2),
+	(20,1,6),
+	(21,1,11);
+
+insert into historia_academica (id_alumne, semestre, id_materia, id_comision, estado, nota_regular, nota_final) values
+(1,'2023-1',1,1,'aprobada',9,9),
+(1,'2023-1',2,1,'aprobada',10,10),
+(1,'2023-1',3,1,'ausente',0,NULL),
+(1,'2023-2',3,1,'regular',5,NULL),
+(1,'2023-2',5,1,'aprobada',7,7),
+(2,'2023-1',1,1,'aprobada',9,9),
+(2,'2023-1',2,1,'aprobada',10,10),
+(2,'2023-1',3,1,'ausente',0,NULL),
+(2,'2023-2',3,1,'reprobada',2,NULL),
+(2,'2023-2',5,1,'aprobada',7,7),
+(3,'2023-1',1,1,'aprobada',9,9),
+(3,'2023-1',2,1,'aprobada',10,10),
+(3,'2023-1',3,1,'aprobada',10,10),
+(3,'2023-2',4,2,'regular',6,NULL),
+(3,'2023-2',5,1,'aprobada',9,9),
+(4,'2023-1',1,1,'aprobada',9,9),
+(4,'2023-1',2,1,'aprobada',10,10),
+(4,'2023-1',3,1,'aprobada',10,10),
+(4,'2023-2',4,2,'ausente',0,NULL),
+(4,'2023-2',5,1,'aprobada',9,9),
+(5,'2022-1',1,1,'aprobada',10,10),
+(5,'2022-1',2,1,'aprobada',10,10),
+(5,'2022-1',3,1,'aprobada',10,10),
+(5,'2022-2',4,2,'aprobada',9,9),
+(5,'2022-2',5,1,'aprobada',9,9),
+(5,'2023-1',6,1,'regular',5,NULL),
+(5,'2023-1',7,2,'aprobada',8,8),
+(5,'2023-1',8,1,'regular',6,NULL),
+(5,'2023-2',11,1,'regular',6,NULL),
+(6,'2023-1',1,1,'aprobada',9,9),
+(6,'2023-1',2,1,'aprobada',10,10),
+(6,'2023-1',3,1,'aprobada',10,10),
+(6,'2023-2',4,2,'aprobada',10,10),
+(6,'2023-2',5,1,'aprobada',9,9),
+(7,'2023-1',1,1,'aprobada',9,9),
+(7,'2023-1',2,1,'aprobada',10,10),
+(7,'2023-1',3,1,'aprobada',10,10),
+(7,'2023-2',4,2,'aprobada',10,10),
+(7,'2023-2',5,1,'regular',6,NULL),
+(8,'2023-1',1,1,'aprobada',9,9),
+(8,'2023-1',2,1,'aprobada',10,10),
+(8,'2023-1',3,1,'aprobada',10,10),
+(8,'2023-2',6,1,'aprobada',10,10),
+(8,'2023-2',9,1,'aprobada',8,8);
+
+    
+
+	
+insert into periodo (semestre, estado) values
+	('2022-1','cerrado'),
+	('2022-2','cerrado'),
+	('2023-1','cerrado'),
+	('2023-2','cerrado');
+
+
+
+    
+insert into entrada_trx (id_orden, operacion, año, nro_semestre, id_alumne, id_materia, id_comision, nota) values
+    (1, 'alta inscrip', null, null, 10, 3, 1, null),
+    (2, 'apertura', 2023, 2, null, null, null, null),
+    (3, 'apertura', 2024, 1, null, null, null, null),
+    (4, 'alta inscrip', null, null, 1, 4, 2, null),
+    (5, 'alta inscrip', null, null, 2, 4, 1, null),
+    (6, 'alta inscrip', null, null, 8, 4, 2, null),
+    (7, 'alta inscrip', null, null, 4, 7, 1, null),
+    (8, 'alta inscrip', null, null, 21, 2, 1, null),
+    (9, 'alta inscrip', null, null, 7, 7, 1, null),    
+    (10, 'alta inscrip', null, null, 17, 2, 1, null),    
+    (11, 'alta inscrip', null, null, 12, 2, 1, null),    
+    (12, 'alta inscrip', null, null, 13, 2, 1, null),    
+    (13, 'alta inscrip', null, null, 14, 2, 1, null),    
+    (14, 'alta inscrip', null, null, 15, 2, 1, null),    
+    (15, 'alta inscrip', null, null, 16, 2, 1, null),    
+    (16, 'alta inscrip', null, null, 11, 2, 1, null),    
+    (17, 'baja inscrip', null, null, 8, 2, null, null),    
+    (18, 'baja inscrip', null, null, 14, 2, null, null),    
+    (19, 'cierre inscrip', 2024, 1, null, null, null, null),    
+    (20, 'aplicacion cupo', 2024, 1, null, null, null, null),    
+    (21, 'baja inscrip', null, null, 13, 2, null, null),    
+    (22, 'ingreso nota', null, null, 21, 2, 1, 10),    
+    (23, 'ingreso nota', null, null, 8, 4, 1, 5),   
+    (24, 'cierre cursada', null, null, null, 4, 2, null),    
+    (25, 'cierre cursada', null, null, null, 16, 1, null),    
+    (26, 'ingreso nota', null, null, 8, 4, 2, 5),   
+    (27, 'cierre cursada', null, null, null, 4, 2, null);
+```
+
+# Agregar constraints
+```sql
+alter table alumne 
+add constraint alumne_pk 
+primary key (id_alumne);
+
+alter table materia 
+add constraint materia_pk 
+primary key (id_materia);
+
+alter table correlatividad 
+add constraint idMateria_fk 
+foreign key (id_materia) references materia(id_materia);
+
+alter table correlatividad 
+add constraint idMateria_correlativa_fk 
+foreign key (id_mat_correlativa) references materia(id_materia);
+
+alter table comision
+add constraint comision_pk
+primary key (id_materia, id_comision);
+
+alter table cursada
+add constraint cursada_pk
+primary key (id_materia, id_alumne),
+add constraint comision_fk foreign key (id_materia, id_comision) references comision(id_materia, id_comision),
+add constraint alumne_fk foreign key (id_alumne) references alumne(id_alumne),
+add constraint estado_chk check(estado in ('ingresade', 'aceptade', 'en espera', 'dade de baja'));
+
+alter table periodo
+add constraint periodo_pk
+primary key (semestre),
+add constraint estado_chk check(estado in ('inscripcion', 'cierre inscrip', 'cursada', 'cerrado'));
+
+alter table historia_academica
+add constraint historia_academica_pk
+primary key (id_alumne, semestre, id_materia),
+add constraint id_comision_fk
+foreign key (id_materia, id_comision) references comision(id_materia, id_comision),
+add constraint estado_chk check(estado in ('ausente', 'reprobada', 'regular', 'aprobada'));
+
+alter table error
+add constraint id_error_pk
+primary key (id_error),
+add constraint operacion_chk check (operacion in ('apertura', 'alta inscrip', 'baja inscrip', 'cierre inscrip', 'aplicacion cupo', 'ingreso nota', 'cierre cursada'));
+
+alter table envio_email
+add constraint id_email_pk primary key (id_email),
+add constraint estado_chk check (estado in ('pendiente', 'enviado'));
+```
+
+# Eliminar constraints
+```sql
+alter table cursada
+drop constraint cursada_pk,
+drop constraint comision_fk, 
+drop constraint alumne_fk, 
+drop constraint estado_chk;
+
+alter table periodo
+drop constraint periodo_pk,
+drop constraint estado_chk;
+
+alter table correlatividad 
+drop constraint idMateria_fk, 
+drop constraint idMateria_correlativa_fk;
+
+alter table historia_academica
+drop constraint historia_academica_pk,
+drop constraint id_comision_fk,
+drop constraint estado_chk;
+
+alter table error
+drop constraint id_error_pk,
+drop constraint operacion_chk;
+
+alter table envio_email
+drop constraint id_email_pk,
+drop constraint estado_chk;
+
+alter table alumne 
+drop constraint alumne_pk;
+
+alter table materia 
+drop constraint materia_pk;
+
+alter table comision
+drop constraint comision_pk;
+```
+
+# Menu en GO
+```go
+package main
+
+import (
+	"bufio"
+	"database/sql"
+	"fmt"
+	"log"
+	"os"
+
+	_ "github.com/lib/pq"
+)
+
+const (
+    host     = "localhost"
+    port     = 5432
+    user     = "postgres"
+    password = ""
+    initialdb   = "postgres"
+    targetdb = "herrera_lambrecht_petosa_sotelo_db1"
+
+)
+
+func main() {
+
+    reader := bufio.NewReader(os.Stdin)
+
+    for {
+        fmt.Println("Menu:")
+        fmt.Println("1. Crear base de datos")
+		fmt.Println("2. Crear tablas")
+        fmt.Println("3. Crear constraints")
+        fmt.Println("4. Crear stored procedures")
+        fmt.Println("5. Crear triggers")
+        fmt.Println("6. Eliminar constraints")
+        fmt.Println("7. Cargar tablas")
+        fmt.Println("8. Mas opciones->")
+        fmt.Println("9. Ejecutar test")
+        fmt.Println("0. Salir")
+        fmt.Print("Seleccione una opción: ")
+
+        var choice int
+        fmt.Scanln(&choice)
+
+        switch choice {
+        case 1: //Crear base de datos
+            eliminarBaseDeDatos("../scripts/eliminar_db.sql", initialdb)
+            crearBaseDeDatos("../scripts/crear_db.sql",initialdb)
+        case 2: //Crear tablas
+            crearTablas("../scripts/crear_tablas.sql",targetdb)
+        case 3: // Crear constraints
+            agregarConstraints("../scripts/agregar_constraints.sql", targetdb)
+        case 4: // Crear stored procedures
+            agregarStoredProcedure("../scripts/stored_procedures/apertura_inscripcion.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/inscripcion_a_materia.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/baja_inscripcion.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/cierre_inscripcion.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/aplicacion_de_cupos.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/ingreso_nota_cursada.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/cierre_de_cursada.sql", targetdb)
+            agregarStoredProcedure("../scripts/stored_procedures/test.sql", targetdb)
+        case 5: // Crear triggers
+            agregarTrigger("../scripts/triggers/trg_email_inscripcion.sql", targetdb)
+            agregarTrigger("../scripts/triggers/trg_actualizar_estado_en_espera.sql", targetdb)
+            agregarTrigger("../scripts/triggers/trg_cierre_cursada2.sql", targetdb)
+            agregarTrigger("../scripts/triggers/trg_email_baja_inscripcion.sql", targetdb)
+            agregarTrigger("../scripts/triggers/trg_email_cupo_aplicado.sql", targetdb)
+            agregarTrigger("../scripts/triggers/trg_email_alumne_aceptade.sql", targetdb)
+        case 6: // Eliminar constraints
+            eliminarConstraints("../scripts/eliminar_constraints.sql", targetdb)
+        case 7: // Cargar tablas
+            cargarTablas("../scripts/cargar_tablas.sql", targetdb)
+        case 8: // Submenu
+            Submenu:
+				for{
+					fmt.Println("Mas opciones:")
+					fmt.Println("\t1.Apertura de inscripcion")
+					fmt.Println("\t2.Inscripcion a materia")
+					fmt.Println("\t3.Baja de inscripcion")
+					fmt.Println("\t4.Cierre de inscripcion")
+					fmt.Println("\t5.Aplicacion de cupos")
+					fmt.Println("\t6.Ingreso de nota de cursada")
+					fmt.Println("\t7.Cierre de cursada")
+					fmt.Println("\t0.Volver al menu principal")
+					fmt.Println("")
+					fmt.Println("\tSeleccione una opcion:")
+					
+					var subChoice int
+					fmt.Scanln(&subChoice)
+
+					switch subChoice {
+					case 1: 
+                        aperturaInscripcion()
+					case 2: 
+						inscripcionMateria()
+					case 3: 
+						bajaInscripcion()
+					case 4: 
+						cierreInscripcion()
+					case 5: 
+						aplicacionCupos()
+					case 6: 
+						ingresoNota()
+					case 7: 
+                        cierreCursada()
+					case 0: 
+						fmt.Println("Volviendo al menu principal..")
+						break Submenu
+					default:
+						fmt.Println("Opción no válida en el submenu")
+								}
+					}
+      
+        case 9: // Ejecutar test                
+            ejecutarTest()
+		case 0: //Salir
+            fmt.Println("Saliendo..")
+            return
+        default:
+            fmt.Println("Opción no válida")
+        }
+
+        esperarTeclaOprimida(reader)
+
+    }
+}
+
+func crearTablas(fileName string, dbName string){
+    fmt.Println("Creando tablas...")
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Tablas creadas.")
+}
+
+func cargarTablas(fileName string, dbName string){
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Tablas cargadas.")
+}
+
+func agregarConstraints(fileName string, dbName string){
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Constraints agregadas.")
+}
+
+func agregarStoredProcedure(fileName string, dbName string){
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Stored Prodecure agregada.")
+}
+
+func agregarTrigger(fileName string, dbName string){
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Trigger agregado.")
+}
+
+func eliminarConstraints(fileName string, dbName string){
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Constraints eliminadas.")
+}
+
+
+func crearBaseDeDatos(fileName string, dbName string){
+    fmt.Println("Creando base de datos...")
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+    
+    fmt.Println("Base de datos creada.") 
+}
+
+func eliminarBaseDeDatos(fileName string, dbName string){
+    fmt.Println("Eliminando si existe la base de datos...")
+
+    err := ejecutarScriptSQL(fileName, dbName)
+
+    if err != nil {
+        log.Printf("%v", err)
+        return
+    }
+
+}
+
+func esperarTeclaOprimida(reader *bufio.Reader) {
+    fmt.Println("Presione Enter para continuar...")
+    
+    for {
+        input, _ := reader.ReadString('\n')
+        if input == "\n" {
+            break
+        } else {
+            fmt.Println("Presione Enter para continuar...")
+        }
+    }
+
+}
+
+func ejecutarScriptSQL(filePath string, dbName string) error {
+
+    db, err := conexionDB(dbName)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+    
+    sqlFile, err := os.ReadFile(filePath)
+    if err != nil {
+        return fmt.Errorf("error al leer el archivo SQL: %v", err)
+    }
+
+    _, err = db.Exec(string(sqlFile))
+    if err != nil {
+        return fmt.Errorf("error al ejecutar el archivo SQL: %v", err)
+    }
+    
+    return nil
+}
+
+func conexionDB( dbName string) (*sql.DB , error){
+    psqlInfo := fmt.Sprintf("host=%s user=%s dbname=%s sslmode=disable",
+    host, user, dbName)
+
+    db, err := sql.Open("postgres", psqlInfo)
+    if err != nil {
+        return nil,fmt.Errorf("error al conectar con la base de datos: %v", err)
+    }
+    return db,nil
+}
+
+
+// ---- Stored Procedures
+
+func aperturaInscripcion() {
+    var año int
+    var semestre int
+    fmt.Print("Ingrese el año: ")
+    fmt.Scanln(&año)
+    fmt.Print("Ingrese el número de semestre: ")
+    fmt.Scanln(&semestre)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT apertura_inscripcion($1, $2)", año, semestre).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado de apertura de inscripción:", result)
+    }
+}
+
+func inscripcionMateria() {
+    var alumne int
+    var materia int
+    var comision int
+    fmt.Print("Ingrese el id del alumne: ")
+    fmt.Scanln(&alumne)
+    fmt.Print("Ingrese el id de la materia: ")
+    fmt.Scanln(&materia)
+    fmt.Print("Ingrese el id de la comisión: ")
+    fmt.Scanln(&comision)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT inscripcion_a_materia($1, $2, $3)", alumne, materia, comision).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado de la inscripción:", result)
+    }
+}
+
+func bajaInscripcion(){
+    var alumne int
+    var materia int
+    fmt.Print("Ingrese el id del alumne: ")
+    fmt.Scanln(&alumne)
+    fmt.Print("Ingrese el id de la materia: ")
+    fmt.Scanln(&materia)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT baja_inscripcion($1, $2)", alumne, materia).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado de la baja de inscripción:", result)
+    }
+}
+
+func cierreInscripcion(){
+    var año int
+    var semestre int
+    fmt.Print("Ingrese el año: ")
+    fmt.Scanln(&año)
+    fmt.Print("Ingrese el número de semestre: ")
+    fmt.Scanln(&semestre)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT cerrar_inscripcion($1, $2)", año, semestre).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado del cierre de inscripción:", result)
+    } 
+}
+
+func aplicacionCupos(){
+    var año int
+    var semestre int
+    fmt.Print("Ingrese el año: ")
+    fmt.Scanln(&año)
+    fmt.Print("Ingrese el número de semestre: ")
+    fmt.Scanln(&semestre)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT aplicar_cupos($1, $2)", año, semestre).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado de la aplicación de cupos:", result)
+    } 
+}
+
+func ingresoNota(){
+    var alumne int
+    var materia int
+    var comision int
+    var nota int
+    fmt.Print("Ingrese el id del alumne: ")
+    fmt.Scanln(&alumne)
+    fmt.Print("Ingrese el id de la materia: ")
+    fmt.Scanln(&materia)
+    fmt.Print("Ingrese el id de la comisión: ")
+    fmt.Scanln(&comision)
+    fmt.Print("Ingrese la nota: ")
+    fmt.Scanln(&nota)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT ingresar_nota_cursada($1, $2, $3, $4)", alumne, materia, comision, nota).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado del ingreso de la nota de cursada:", result)
+    }
+
+}
+
+func cierreCursada(){
+    var materia int
+    var comision int
+    fmt.Print("Ingrese el id de la materia: ")
+    fmt.Scanln(&materia)
+    fmt.Print("Ingrese el id de la comisión: ")
+    fmt.Scanln(&comision)
+
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    var result bool
+    err = db.QueryRow("SELECT cerrar_cursada($1, $2)", materia, comision).Scan(&result)
+    if err != nil {
+        fmt.Println("Error al ejecutar la stored procedure:", err)
+    } else {
+        fmt.Println("Resultado del cierre de la nota de cursada:", result)
+    }  
+}
+
+func ejecutarTest(){
+    
+    db, err := conexionDB(targetdb)
+    if err != nil {
+        log.Fatalf("No se pudo conectar a la base de datos: %v", err)
+    }
+    defer db.Close()
+
+    db.QueryRow("select testear()")
+   
+}
+```
+
+# Stored Procedures
+
+```sql
+create or replace function apertura_inscripcion(año int, nro_semestre int) returns boolean as $$
+declare
+    estado_actual char(12);
+begin
+    -- valida que el año sea mayor o igual al año actual
+    if año < extract(year from current_date) then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('apertura', concat(año, '-', nro_semestre), null, null, null, current_timestamp, '?no se permiten inscripciones para un período anterior');
+        return false;
+    end if;
+
+    -- valida que el número de semestre sea 1 o 2
+    if nro_semestre not in (1, 2) then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('apertura', concat(año, '-', nro_semestre), null, null, null, current_timestamp, '?número de semestre no válido');
+        return false;
+    end if;
+
+    -- valida que el año y semestre solicitado ya exista en la tabla periodo, y que su estado sea cierre inscrip
+    select estado into estado_actual from periodo where semestre = concat(año, '-', nro_semestre);
+    if found then
+        if estado_actual <> 'cierre inscrip' then
+            insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+            values ('apertura', concat(año, '-', nro_semestre), null, null, null, current_timestamp, concat('?no es posible reabrir la inscripción del período, estado actual:', estado_actual));
+            return false;
+        end if;
+    end if;
+
+    -- valida que no exista otro período (diferente al solicitado) en estado de inscripcion o cierre inscrip
+    if exists (select 1 from periodo where estado in ('inscripcion', 'cierre inscrip') and semestre <> concat(año, '-', nro_semestre)) then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('apertura', concat(año, '-', nro_semestre), null, null, null, current_timestamp, '?no es posible abrir otro período de inscripción');
+        return false;
+    end if;
+
+    -- inserta o actualiza 
+    if found then
+        update periodo set estado = 'inscripcion' where semestre = concat(año, '-', nro_semestre);
+    else
+        insert into periodo (semestre, estado) values (concat(año, '-', nro_semestre), 'inscripcion');
+    end if;
+
+    return true;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function aplicar_cupos(p_año int, p_semestre int) returns boolean as $$
+declare
+    periodo_actual char(15);
+    cupo_comision int;
+    registro record;
+begin
+    -- semestre en estado cierre inscrip
+    select estado into periodo_actual from periodo where semestre = concat(p_año, '-', p_semestre) and estado = 'cierre inscrip';
+    if not found then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('aplicacion cupo', concat(p_año, '-', p_semestre), null, null, null, current_timestamp, '?el semestre no se encuentra en un período válido para aplicar cupos');
+        return false;
+    end if;
+
+    for registro in (select id_materia, id_comision, cupo from comision) loop
+        cupo_comision := registro.cupo;
+
+        -- cambia estado a aceptade
+        update cursada
+        set estado = 'aceptade'
+        where (id_alumne, id_materia) in (
+            select id_alumne, id_materia
+            from (
+                select id_alumne, id_materia
+                from cursada
+                where id_materia = registro.id_materia
+                  and id_comision = registro.id_comision
+                  and estado = 'ingresade'
+                order by f_inscripcion
+                limit registro.cupo
+            ) as subquery
+        );
+
+        -- los ingresade pasan a en espera
+        update cursada
+        set estado = 'en espera'
+        where id_materia = registro.id_materia
+          and id_comision = registro.id_comision
+          and estado = 'ingresade';
+    end loop;
+
+    -- acá pasa a 'cursada' el periodo
+    update periodo
+    set estado = 'cursada'
+    where semestre = concat(p_año, '-', p_semestre);
+
+    return true;
+exception
+    when others then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('aplicacion cupo', concat(p_año, '-', p_semestre), null, null, null, current_timestamp, 'error durante la aplicación de cupos');
+        return false;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function baja_inscripcion(p_id_alumne int, p_id_materia int) returns boolean as $$
+
+
+declare existe_alumne boolean;
+declare semestre_actual char(6);
+declare existe_materia boolean;
+declare registrado_en_comision int;
+
+begin
+
+    -- Valida que el período exista
+    select semestre into semestre_actual from periodo where estado in ('inscripcion', 'cursada');
+    if not found then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo) 
+        values ('baja inscrip', null, p_id_alumne, p_id_materia, null, current_timestamp, '?no se permiten bajas en este período');
+        return false;
+    end if;
+
+    -- Validar que el alumne exista
+    select count(*) into existe_alumne from alumne where id_alumne = p_id_alumne;
+    if not existe_alumne then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo) 
+        values ('baja inscrip', semestre_actual, p_id_alumne, p_id_materia, null, current_timestamp, '?id de alumne no válido');
+        return false;
+    end if;
+
+    -- Validar que la materia exista
+   
+	select count(*) into existe_materia from materia where id_materia = p_id_materia;
+    if not existe_alumne then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo) 
+        values ('baja inscrip', semestre_actual, p_id_alumne, p_id_materia, null, current_timestamp, '?id de materia no válido');
+        return false;
+    end if;
+
+    -- Validar que el alumne esté inscripto en la materia
+    select id_comision into registrado_en_comision from cursada where id_alumne = p_id_alumne and id_materia = p_id_materia;
+	if not found then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo) 
+        values ('baja inscrip', semestre_actual, p_id_alumne, p_id_materia, null, current_timestamp, '?alumne no inscripte en la materia');
+        return false;
+    end if;
+
+    -- Actualizar la inscripcion
+    update cursada set estado = 'dade de baja' where id_alumne = p_id_alumne and id_materia = p_id_materia;
+
+    return true;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function cerrar_cursada(p_id_materia int, p_id_comision int ) returns boolean as $$
+declare
+    v_estado_periodo char(12);
+    semestre_actual char(6);
+    existe_materia boolean;
+    existe_comision boolean;
+    v_alumnes_inscriptes int;
+    notas_completas boolean;
+begin
+
+    select estado, semestre into v_estado_periodo, semestre_actual
+    from periodo
+    where estado = 'cursada';
+
+    if v_estado_periodo is null then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre cursada', semestre_actual, null, p_id_materia, p_id_comision, now(), 'período de cursada cerrado');
+        return false;
+    end if;
+
+    select count(*) > 0 into existe_materia
+    from materia
+    where id_materia = p_id_materia;
+
+    if not existe_materia then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre cursada', semestre_actual, null, p_id_materia, p_id_comision, now(), 'id de materia no válido');
+        return false;
+    end if;
+
+    select count(*) > 0 into existe_comision
+    from comision
+    where id_materia = p_id_materia and id_comision = p_id_comision;
+
+    if not existe_comision then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre cursada', semestre_actual, null, p_id_materia, p_id_comision, now(), 'id de comisión no válido para la materia');
+        return false;
+    end if;
+
+    select count(*) into v_alumnes_inscriptes
+    from cursada
+    where id_materia = p_id_materia and id_comision = p_id_comision;
+
+    if v_alumnes_inscriptes = 0 then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre cursada', semestre_actual, null, p_id_materia, p_id_comision, now(), 'comisión sin alumnes inscriptes');
+        return false;
+    end if;
+
+    select count(*) = 0 into notas_completas
+    from cursada
+    where id_materia = p_id_materia and id_comision = p_id_comision and estado = 'aceptade' and nota is null;
+
+    if not notas_completas then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre cursada', semestre_actual, null, p_id_materia, p_id_comision, now(), 'la carga de notas no está completa');
+        return false;
+    end if;
+
+    insert into historia_academica (id_alumne, semestre, id_materia, id_comision, estado, nota_regular, nota_final)
+    select id_alumne, semestre_actual, id_materia, id_comision,
+        case
+            when nota = 0 then 'ausente'
+            when nota between 1 and 3 then 'reprobada'
+            when nota between 4 and 6 then 'regular'
+            when nota between 7 and 10 then 'aprobada'
+        end as estado,
+        nota as nota_regular,
+        case
+            when nota between 7 and 10 then nota
+            else null
+        end as nota_final
+    from cursada
+    where id_materia = p_id_materia and id_comision = p_id_comision and estado = 'aceptade';
+
+    -- raise exception 'error personalizado antes de eliminar registros de cursada';
+
+    delete from cursada
+    where id_materia = p_id_materia and id_comision = p_id_comision;
+
+    update periodo set estado = 'cerrado' where estado = 'cursada';
+
+    return true;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function cerrar_inscripcion(p_año int, p_nro_semestre int) returns boolean as $$
+declare
+    periodo_actual char(15);
+begin
+
+    -- Valida que el periodo esté en 'inscripcion'
+    select estado into periodo_actual from periodo where semestre = concat(p_año, '-', p_nro_semestre) and estado = 'inscripcion';
+    if not found then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('cierre inscrip', concat(p_año, '-', p_nro_semestre), null, null, null, current_timestamp, '?el semestre no se encuentra en período de inscripción');
+        return false;
+    end if;
+
+    -- Cambia el periodo a 'cierre inscrip'
+    update periodo
+    set estado = 'cierre inscrip'
+    where semestre = concat(p_año, '-', p_nro_semestre);
+
+    return true;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function ingresar_nota_cursada(p_id_alumne int, p_id_materia int, p_id_comision int, p_nota int)  returns boolean as $$
+declare
+    estado_periodo char(12);
+    semestre_actual char(6);
+    existe_alumno boolean;
+    existe_materia boolean;
+    existe_comision boolean;
+    existe_inscripcion boolean;
+begin
+    -- valida que el periodo esté en 'cursada'
+    select estado, semestre into estado_periodo, semestre_actual
+    from periodo
+    where estado = 'cursada';
+    if estado_periodo is null then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?período de cursada cerrado');
+        return false;
+    end if;
+
+    -- valida que el alumne exista
+    select count(*) > 0 into existe_alumno
+    from alumne
+    where id_alumne = p_id_alumne;
+
+    if not existe_alumno then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?id de alumne no válido');
+        return false;
+    end if;
+
+    -- valida que la materia exista
+    select count(*) > 0 into existe_materia
+    from materia
+    where id_materia = p_id_materia;
+
+    if not existe_materia then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?id de materia no válido');
+        return false;
+    end if;
+
+    -- valida que la comision exista para la materia
+    select count(*) > 0 into existe_comision
+    from comision
+    where id_materia = p_id_materia and id_comision = p_id_comision;
+
+    if not existe_comision then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?id de comisión no válido para la materia');
+        return false;
+    end if;
+
+    -- valida que el alumne esté inscripte
+    select count(*) > 0 into existe_inscripcion
+    from cursada
+    where id_alumne = p_id_alumne and id_materia = p_id_materia and id_comision = p_id_comision and estado = 'aceptade';
+
+    if not existe_inscripcion then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?alumne no cursa en la comisión');
+        return false;
+    end if;
+
+    -- validar que la nota esté en el rango de 0 a 10
+    if p_nota < 0 or p_nota > 10 then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('ingreso nota', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, now(), '?nota no válida:' || p_nota);
+        return false;
+    end if;
+
+    -- actualiza la nota del alumne
+    update cursada
+    set nota = p_nota
+    where id_alumne = p_id_alumne and id_materia = p_id_materia and id_comision = p_id_comision;
+
+    return true;
+end;
+$$ language plpgsql;
+```
+```sql
+create or replace function inscripcion_a_materia(p_id_alumne int, p_id_materia int, p_id_comision int) returns boolean as $$
+declare
+    periodo_actual char(12);
+    semestre_actual char(6);
+    existe_alumne boolean;
+    existe_materia boolean;
+    existe_comision boolean;
+    esta_inscripto boolean;
+    cumple_correlativas boolean;
+begin
+    -- valida que exista un período en estado de inscripcion
+    select estado,semestre into periodo_actual,semestre_actual from periodo where estado = 'inscripcion';
+    if not found then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', null, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'período de inscripción cerrado');
+        return false;
+    end if;
+
+    -- valida que el alumne exista
+    select count(*) into existe_alumne from alumne where id_alumne = p_id_alumne;
+    if not existe_alumne then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'id de alumne no válido');
+        return false;
+    end if;
+
+    -- valida que la materia exista
+    select count(*) into existe_materia from materia where id_materia = p_id_materia;
+    if not existe_materia then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'id de materia no válido');
+        return false;
+    end if;
+
+    -- valida que la comisión exista para la materia
+    select count(*) into existe_comision from comision where id_materia = p_id_materia and id_comision = p_id_comision;
+    if not existe_comision then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'id de comisión no válido para la materia');
+        return false;
+    end if;
+
+    -- valida que le alumne no esté inscripto previamente en la materia (en cualquiera de sus comisiones)
+    select count(*) into esta_inscripto from cursada where id_alumne = p_id_alumne and id_materia = p_id_materia;
+    if esta_inscripto then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'alumne ya inscripto en la materia');
+        return false;
+    end if;
+
+    -- valida que le alumne tenga en su historia académica todas las materias correlativas en estado regular o aprobada
+    select not exists (
+        select 1
+        from correlatividad c
+        where c.id_materia = p_id_materia
+        and not exists (
+            select 1
+            from historia_academica h
+            where h.id_alumne = p_id_alumne
+            and h.id_materia = c.id_mat_correlativa
+            and h.estado in ('regular', 'aprobada')
+        )
+    ) into cumple_correlativas;
+
+    if not cumple_correlativas then
+        insert into error (operacion, semestre, id_alumne, id_materia, id_comision, f_error, motivo)
+        values ('alta inscrip', semestre_actual, p_id_alumne, p_id_materia, p_id_comision, current_timestamp, 'alumne no cumple requisitos de correlatividad');
+        return false;
+    end if;
+
+    -- inserta la inscripción en la tabla cursada con el estado de ingresade
+    insert into cursada (id_materia, id_alumne, id_comision, f_inscripcion, estado)
+    values (p_id_materia, p_id_alumne, p_id_comision, current_timestamp, 'ingresade');
+
+    return true;
+end;
+$$ language plpgsql;
+```
+# Triggers
+
+```sql
+drop trigger if exists trg_actualizar_estado_en_espera on cursada;
+
+create or replace function actualizar_estado_en_espera() returns trigger as $$
+declare
+    alumne_en_espera int;
+begin
+    -- si el nuevo estado es 'dade de baja'
+    if new.estado = 'dade de baja' then
+        
+        if exists (select 1 from periodo where estado = 'cursada') then
+            -- selecciono el primer alumne en espera
+            select id_alumne into alumne_en_espera
+            from cursada
+            where id_materia = new.id_materia
+              and id_comision = new.id_comision
+              and estado = 'en espera'
+            order by f_inscripcion asc
+            limit 1;
+
+            -- actualizo el estado
+            if alumne_en_espera is not null then
+                update cursada
+                set estado = 'aceptade'
+                where id_alumne = alumne_en_espera;
+            end if;
+        end if;
+    end if;
+
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger trg_actualizar_estado_en_espera after update on cursada
+for each row
+when (new.estado = 'dade de baja')
+execute function actualizar_estado_en_espera();
+```
+```sql
+drop trigger if exists trg_cierre_cursada on historia_academica;
+
+
+create or replace function fn_cierre_cursada() returns trigger as $$
+declare
+    semestre_actual char(6);
+    v_nombre_alumne text;
+    v_apellido_alumne text;
+    v_email_alumne text;
+    v_nombre_materia text;
+    v_id_comision int;
+    v_estado_academico char(15);
+    v_nota_regular int;
+    v_nota_final int;
+begin
+
+    select semestre into semestre_actual from periodo 
+    order by semestre desc
+    limit 1;
+
+    -- datos del alumno
+    select nombre, apellido, email into v_nombre_alumne, v_apellido_alumne, v_email_alumne
+    from alumne
+    where id_alumne = new.id_alumne;
+
+    -- datos de la materia y comisión
+    select nombre into v_nombre_materia
+    from materia
+    where id_materia = new.id_materia;
+    v_id_comision = new.id_comision;
+
+    -- estado académico y notas
+    select estado, nota_regular, nota_final into v_estado_academico, v_nota_regular, v_nota_final
+    from historia_academica
+    where id_alumne = new.id_alumne and id_materia = new.id_materia and id_comision = new.id_comision and semestre = semestre_actual;
+
+    -- inserto el email
+    insert into envio_email (f_generacion, email_alumne, asunto, cuerpo, estado)
+    values (
+        now(),
+        v_email_alumne,
+        'cierre de cursada',
+        concat(
+            'estimado/a ', v_nombre_alumne, ' ', v_apellido_alumne, ', la cursada de la materia ',
+            v_nombre_materia, ' en la comisión ', v_id_comision, ' ha sido cerrada. Su estado académico es ',
+            v_estado_academico, ' y su nota es ',
+            case when v_estado_academico = 'aprobada' then v_nota_final else v_nota_regular end, '.'
+        ),
+        'pendiente'
+    );
+
+    return new;
+end;
+$$ language plpgsql;
+
+-- agrego definición del trigger!!
+create trigger trg_cierre_cursada
+after insert on historia_academica
+for each row
+execute function fn_cierre_cursada();
+```
+```sql
+drop trigger if exists trg_enviar_email_aceptacion_lista_espera on cursada;
+
+-- Función para enviar email cuando un alumno sale de la lista de espera y es aceptado
+create or replace function enviar_email_aceptacion_lista_espera()
+returns trigger as $$
+begin
+    insert into envio_email (f_generacion, email_alumne, asunto, cuerpo, estado)
+    values (
+        now(),
+        (select email from alumne where id_alumne = new.id_alumne),
+        'Inscripción aceptada',
+        format('Estimade %s %s, su inscripción a la materia %s, comisión %s ha sido aceptada desde la lista de espera.',
+               (select nombre from alumne where id_alumne = new.id_alumne),
+               (select apellido from alumne where id_alumne = new.id_alumne),
+               (select nombre from materia where id_materia = new.id_materia),
+               new.id_comision),
+        'pendiente'
+    );
+    return new;
+end;
+$$ language plpgsql;
+
+create trigger trg_enviar_email_aceptacion_lista_espera after update on cursada
+for each row
+when (old.estado = 'en espera' and new.estado = 'aceptade')
+execute function enviar_email_aceptacion_lista_espera();
+```
+```sql
+drop trigger if exists trg_enviar_email_baja_inscripcion on cursada;
+
+create or replace function enviar_email_baja_inscripcion()
+returns trigger as $$
+begin
+	insert into envio_email(f_generacion, email_alumne, asunto, cuerpo, estado)
+	values(
+		now(),
+		(select email from alumne where id_alumne = new.id_alumne),
+		'Inscripcion dada de baja',
+		format('Estimade %s %s, su inscripcion a la materia %s, comision %s ha sido dada de baja.',
+			(select nombre from alumne where id_alumne= new.id_alumne),
+			(select apellido from alumne where id_alumne= new.id_alumne),
+			(select nombre from materia where id_materia= new.id_materia),
+			new.id_comision),
+		'pendiente'
+	);
+	return new;
+end;
+$$ language plpgsql;
+
+create trigger trg_enviar_email_baja_inscripcion
+after update on cursada
+for each row
+when (new.estado = 'dade de baja')
+execute function enviar_email_baja_inscripcion();
+```
+```sql
+drop trigger if exists trg_enviar_email_cupo_aplicado on cursada;
+
+create or replace function enviar_email_cupo_aplicado()
+returns trigger as $$
+begin
+    if new.estado = 'aceptade' and new.nota = null then
+        insert into envio_email (f_generacion, email_alumne, asunto, cuerpo, estado)
+        values (
+            now(),
+            (select email from alumne where id_alumne = new.id_alumne),
+            'Inscripción aceptada',
+            format('Estimade %s %s, su inscripción a la materia %s, comisión %s ha sido aceptada.',
+                   (select nombre from alumne where id_alumne = new.id_alumne),
+                   (select apellido from alumne where id_alumne = new.id_alumne),
+                   (select nombre from materia where id_materia = new.id_materia),
+                   new.id_comision),
+            'pendiente'
+        );
+    elsif new.estado = 'en espera' and new.nota = null  then
+        insert into envio_email (f_generacion, email_alumne, asunto, cuerpo, estado)
+        values (
+            now(),
+            (select email from alumne where id_alumne = new.id_alumne),
+            'Inscripción en espera',
+            format('Estimade %s %s, su inscripción a la materia %s, comisión %s está en espera.',
+                   (select nombre from alumne where id_alumne = new.id_alumne),
+                   (select apellido from alumne where id_alumne = new.id_alumne),
+                   (select nombre from materia where id_materia = new.id_materia),
+                   new.id_comision),
+            'pendiente'
+        );
+    end if;
+    return new;
+end;
+$$ language plpgsql;
+```
+```sql
+drop trigger if exists trg_enviar_email_inscripcion on cursada;
+
+
+create or replace function enviar_email_inscripcion()
+returns trigger as $$
+begin
+    insert into envio_email (f_generacion, email_alumne, asunto, cuerpo, estado)
+    values (
+        now(),
+        (select email from alumne where id_alumne = new.id_alumne),
+        'Inscripción registrada',
+        format('Estimade %s %s, su inscripción a la materia %s, comisión %s ha sido registrada exitosamente.',
+               (select nombre from alumne where id_alumne = new.id_alumne),
+               (select apellido from alumne where id_alumne = new.id_alumne),
+               (select nombre from materia where id_materia = new.id_materia),
+               new.id_comision),
+        'pendiente'
+    );
+    return new;
+end;
+$$ language plpgsql;
+
+
+create trigger trg_enviar_email_inscripcion
+after insert on cursada
+for each row
+when (new.estado = 'ingresade')
+execute function enviar_email_inscripcion();
+```
+# Menu en go para boltDB
+```go
+package main
+
+import (
+	"fmt"
+	"os"
+	"os/exec"
+)
+
+func main() {
+	for {
+		fmt.Println("Menú:")
+		fmt.Println("1. Ejecutar boltDBcrearAlumne")
+		fmt.Println("2. Ejecutar boltDBcrearMateria")
+		fmt.Println("3. Ejecutar boltDBcrearComision")
+		fmt.Println("4. Ejecutar boltDBcrearPeriodo")
+		fmt.Println("5. Ejecutar boltDBcrearHistoriaAcademica")
+		fmt.Println("6. Salir")
+
+		var choice int
+		fmt.Print("Elija una opción: ")
+		fmt.Scan(&choice)
+
+		switch choice {
+		case 1:
+			fmt.Println("Ejecutando boltDBcrearAlumne.go...")
+			cmd := exec.Command("go", "run", "/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/boltDBcrearAlumne.go")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("Error al ejecutar el archivo: %v\n", err)
+			}
+		case 2:
+			fmt.Println("Ejecutando boltDBcrearMateria.go...")
+			cmd := exec.Command("go", "run", "/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/boltDBcrearMateria.go")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("Error al ejecutar el archivo: %v\n", err)
+			}
+		case 3:
+			fmt.Println("Ejecutando boltDBcrearComision.go...")
+			cmd := exec.Command("go", "run", "/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/boltDBcrearComision.go")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("Error al ejecutar el archivo: %v\n", err)
+			}
+		case 4:
+			fmt.Println("Ejecutando boltDBcrearPeriodo.go...")
+			cmd := exec.Command("go", "run", "/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/boltDBcrearPeriodo.go")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("Error al ejecutar el archivo: %v\n", err)
+			}
+		case 5:
+			fmt.Println("Ejecutando boltDBcrearHistoriaAcad.go...")
+			cmd := exec.Command("go", "run", "/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/boltDBcrearHistoriaAcad.go")
+			cmd.Stdout = os.Stdout
+			cmd.Stderr = os.Stderr
+			err := cmd.Run()
+			if err != nil {
+				fmt.Printf("Error al ejecutar el archivo: %v\n", err)
+			}				
+		case 6:
+			fmt.Println("Saliendo...")
+			return
+		default:
+			fmt.Println("Opción no válida, por favor elija de nuevo.")
+		}
+	}
+}
+```
+# Archivos de boltDB 
+```go
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"io/ioutil"
+	_ "github.com/lib/pq"
+	"github.com/boltdb/bolt"
+)
+
+type Alumne struct {
+    ID        int    `json:"id_alumne"`
+    Nombre    string `json:"nombre"`
+    Apellido  string `json:"apellido"`
+    DNI       int    `json:"dni"`
+    FechaNac  string `json:"fecha_nacimiento"`
+    Telefono  string `json:"telefono"`
+    Email     string `json:"email"`
+}
+
+func main()  {
+	guardarEnBoltDBAlumne()
+	mostrarEnBoltDBAlumne()
+}
+
+func guardarEnBoltDBAlumne(){
+	//Conexion a BD
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=herrera_lambrecht_petosa_sotelo_db1 sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	//Creando la bd en bolt
+	boltDB, err := bolt.Open("Alumne.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	// Crea el bucket para alumne
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("alumne"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Leer el json
+	jsonString, err := ioutil.ReadFile("/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/json/alumnes.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var alumnes []Alumne
+	err = json.Unmarshal([]byte(jsonString), &alumnes)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Guardar alumnes en la BD
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("alumne"))
+		for _, c := range alumnes {
+			jsonString, err := json.Marshal(c)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put([]byte(fmt.Sprintf("%d", c.ID)), jsonString)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Base de datos alumne y datos guardados correctamente.")
+}
+
+func mostrarEnBoltDBAlumne() {
+	boltDB, err := bolt.Open("Alumne.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	err = boltDB.View(func(tx *bolt.Tx) error {
+		// Traer bucket "alumne"
+		alumneBucket := tx.Bucket([]byte("alumne"))
+		if alumneBucket == nil {
+			log.Fatal(err)
+		}
+
+		//Iterar bucket y mostrar por pantalla
+		err := alumneBucket.ForEach(func(k, v []byte) error {
+			fmt.Printf("Clave: %s\n", k)
+			fmt.Printf("Valor: %s\n", v)
+			fmt.Println("--------------------")
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+```go
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"io/ioutil"
+	_ "github.com/lib/pq"
+	"github.com/boltdb/bolt"
+)
+
+type Comision struct {
+    IDMateria int `json:"id_materia"`
+    IDComision int `json:"id_comision"`
+    Cupo int `json:"cupo"`
+}
+
+func main(){
+guardarEnBoltDBComision()
+mostrarEnBoltDBComision()	
+}
+
+
+func guardarEnBoltDBComision(){
+	//Conexion a BD
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=herrera_lambrecht_petosa_sotelo_db1 sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	//Creando la bd en bolt
+	boltDB, err := bolt.Open("Comision.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	// Crea el bucket para comision
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("comision"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Leer el json
+	jsonString, err := ioutil.ReadFile("/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/json/comisiones.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var comisiones []Comision
+	err = json.Unmarshal([]byte(jsonString), &comisiones)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Guardar comisiones en la BD
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("comision"))
+		for _, c := range comisiones {
+			jsonString, err := json.Marshal(c)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put([]byte(fmt.Sprintf("%d", c.IDComision)), jsonString)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Base de datos comision y datos guardados correctamente.")
+}
+
+func mostrarEnBoltDBComision() {
+	boltDB, err := bolt.Open("Comision.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	err = boltDB.View(func(tx *bolt.Tx) error {
+		// Traer bucket "comision"
+		comisionBucket := tx.Bucket([]byte("comision"))
+		if comisionBucket == nil {
+			log.Fatal(err)
+		}
+
+		//Iterar bucket y mostrar por pantalla
+		err := comisionBucket.ForEach(func(k, v []byte) error {
+			fmt.Printf("Clave: %s\n", k)
+			fmt.Printf("Valor: %s\n", v)
+			fmt.Println("--------------------")
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+```go
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"io/ioutil"
+	_ "github.com/lib/pq"
+	"github.com/boltdb/bolt"
+)
+
+type HistoriaAcad struct {
+    IDAlumne        int    `json:"id_alumne"`
+    Semestre        string `json:"semestre"`
+    IDMateria       int    `json:"id_materia"`
+    IDComision      int    `json:"id_comision"`
+    Estado          string `json:"estado"`
+    NotaRegular     int    `json:"nota_regular"`
+    NotaFinal       int    `json:"nota_final"`
+}
+
+func main(){
+	guardarEnBoltDBHistoriaAcad()
+	mostrarEnBoltDBHistoriaAcad()
+}
+
+func guardarEnBoltDBHistoriaAcad(){
+	//Conexion a BD
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=herrera_lambrecht_petosa_sotelo_db1 sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	//Creando la bd en bolt
+	boltDB, err := bolt.Open("HistoriaAcad.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	// Crea el bucket para historia academica
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("historiaacademica"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Leer el json
+	jsonString, err := ioutil.ReadFile("/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/json/historia_academica.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var historia_academica []HistoriaAcad
+	err = json.Unmarshal([]byte(jsonString), &historia_academica)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Guardar historia academica en la BD
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("historiaacademica"))
+		for _, c := range historia_academica {
+			jsonString, err := json.Marshal(c)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put([]byte(fmt.Sprintf("%d-%s-%d", c.IDAlumne, c.Semestre ,c.IDMateria)), jsonString)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Base de datos historiaacademica y datos guardados correctamente.")
+}
+
+func mostrarEnBoltDBHistoriaAcad() {
+	boltDB, err := bolt.Open("HistoriaAcad.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	err = boltDB.View(func(tx *bolt.Tx) error {
+		// Traer bucket "historiaacademica"
+		historiaacademicaBucket := tx.Bucket([]byte("historiaacademica"))
+		if historiaacademicaBucket == nil {
+			log.Fatal(err)
+		}
+
+		//Iterar bucket y mostrar por pantalla
+		err := historiaacademicaBucket.ForEach(func(k, v []byte) error {
+			fmt.Printf("Clave: %s\n", k)
+			fmt.Printf("Valor: %s\n", v)
+			fmt.Println("--------------------")
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+```go
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"log"
+	"io/ioutil"
+	_ "github.com/lib/pq"
+	"github.com/boltdb/bolt"
+)
+
+type Materia struct {
+    ID     int    `json:"id_materia"`
+    Nombre string `json:"nombre"`
+}
+
+func main()  {
+	guardarEnBoltDBMateria()
+	mostrarEnBoltDBMateria()
+}
+
+func guardarEnBoltDBMateria(){
+	//Conexion a BD
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=herrera_lambrecht_petosa_sotelo_db1 sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	//Creando la bd en bolt
+	boltDB, err := bolt.Open("Materia.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	// Crea el bucket para materia
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("materia"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Leer el json
+	jsonString, err := ioutil.ReadFile("/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/json/materias.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var materias []Materia
+	err = json.Unmarshal([]byte(jsonString), &materias)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Guardar materias en la BD
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("materia"))
+		for _, c := range materias {
+			jsonString, err := json.Marshal(c)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put([]byte(fmt.Sprintf("%d", c.ID)), jsonString)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Base de datos materia y datos guardados correctamente.")
+}
+
+func mostrarEnBoltDBMateria() {
+	boltDB, err := bolt.Open("Materia.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	err = boltDB.View(func(tx *bolt.Tx) error {
+		// Traer bucket "materia"
+		materiaBucket := tx.Bucket([]byte("materia"))
+		if materiaBucket == nil {
+			log.Fatal(err)
+		}
+
+		//Iterar bucket y mostrar por pantalla
+		err := materiaBucket.ForEach(func(k, v []byte) error {
+			fmt.Printf("Clave: %s\n", k)
+			fmt.Printf("Valor: %s\n", v)
+			fmt.Println("--------------------")
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+```go
+package main
+
+import (
+	"database/sql"
+	"encoding/json"
+	"fmt"
+	"io/ioutil"
+	"log"
+	_ "github.com/lib/pq"
+	"github.com/boltdb/bolt"
+)
+
+type Periodo struct {
+    
+    Semestre    string `json:"semestre"`
+    Estado      string `json:"estado"`
+}
+
+func main() {
+	guardarEnBoltDBperiodo()
+	mostrarEnBoltDBPeriodo()
+}
+
+func guardarEnBoltDBperiodo(){
+	//Conexion a BD
+	db, err := sql.Open("postgres", "user=postgres host=localhost dbname=herrera_lambrecht_petosa_sotelo_db1 sslmode=disable")
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer db.Close()
+
+	//Creando la bd en bolt
+	boltDB, err := bolt.Open("Periodo.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	// Crea el bucket para periodo
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		_, err := tx.CreateBucketIfNotExists([]byte("periodo"))
+		return err
+	})
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Leer el json
+	jsonString, err := ioutil.ReadFile("/home/lilo/herrera-lambrecht-petosa-sotelo-db1/boltDB/json/periodos.json")
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	var periodos []Periodo
+	err = json.Unmarshal([]byte(jsonString), &periodos)
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//Guardar periodos en la BD
+	err = boltDB.Update(func(tx *bolt.Tx) error {
+		bucket := tx.Bucket([]byte("periodo"))
+		for _, c := range periodos {
+			jsonString, err := json.Marshal(c)
+			if err != nil {
+				log.Fatal(err)
+			}
+
+			err = bucket.Put([]byte(c.Semestre), jsonString)
+			if err != nil {
+				log.Fatal(err)
+			}
+		}
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	fmt.Println("Base de datos periodo y datos guardados correctamente.")
+}
+
+func mostrarEnBoltDBPeriodo() {
+	boltDB, err := bolt.Open("Periodo.db", 0600, nil)
+	if err != nil {
+		log.Fatal(err)
+	}
+	defer boltDB.Close()
+
+	err = boltDB.View(func(tx *bolt.Tx) error {
+		// Traer bucket "periodo"
+		periodoBucket := tx.Bucket([]byte("periodo"))
+		if periodoBucket == nil {
+			log.Fatal(err)
+		}
+
+		//Iterar bucket y mostrar por pantalla
+		err := periodoBucket.ForEach(func(k, v []byte) error {
+			fmt.Printf("Clave: %s\n", k)
+			fmt.Printf("Valor: %s\n", v)
+			fmt.Println("--------------------")
+			return nil
+		})
+		if err != nil {
+			return err
+		}
+
+		return nil
+	})
+
+	if err != nil {
+		log.Fatal(err)
+	}
+}
+```
+== Conclusiones 
+
+Concluimos que se pudo llevar a cabo este trabajo práctico, luego de un trabajo en conjunto, experimentando en principio dudas y desafíos al utilizar nuevas herramientas pero con el paso de los días fuimos investigando y poniendo en práctica lo visto en clase, aplicando los conocimientos en SQL, BoltDB y Go.
